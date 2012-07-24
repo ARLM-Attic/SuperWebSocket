@@ -1,0 +1,5 @@
+*.userprefs
+bin/
+*.xml
+*.user
+mainline/WebSocketTutorial/Client.Web/Logs
