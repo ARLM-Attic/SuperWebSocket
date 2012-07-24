@@ -2,12 +2,6 @@ SuperWebSocket
 
 SuperWebSocket is a .NET implementation of WebSocket server.
 
-----
-$ git svn init https://SuperWebSocket.svn.codeplex.com/svn
-$ git svn fetch -r 78455:HEAD
-----
-
-
 What is WebSocket?
 
 WebSocket is a technology providing for bi-directional, full-duplex communications channels, over a single Transmission Control Protocol (TCP) socket.
