@@ -1,5 +1,11 @@
 *.userprefs
-bin/
 *.xml
+Backup/
+bin/
+obj/
+*.suo
+_UpgradeReport_Files/
+UpgradeLog.XML
+UpgradeLog.htm
+*.log
 *.user
-mainline/WebSocketTutorial/Client.Web/Logs
