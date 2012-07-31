@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using WebSocket4Net;
 using System.Threading;
+using WebSocket4Net;
 using SuperWebSocket.PerformanceTest.TestServer;
 
-namespace SuperWebSocket.PerformanceTest.TestSingleClient
+namespace SuperWebSocket.PerformanceTest.TestClientOneVOne
 {
     class Program
     {
@@ -22,19 +22,31 @@ namespace SuperWebSocket.PerformanceTest.TestSingleClient
 
         private static Timer m_PrintTimer;
 
-        private static ManualResetEvent m_ClosedEvent = new ManualResetEvent(false);
+        private static AutoResetEvent m_MessageEvent = new AutoResetEvent(false);
 
         private const int m_TimerSpan = 5;
+
+        private static JsonWebSocket m_SendingWebSocket;
+
+        private static JsonWebSocket m_ReceivingWebSocket;
 
         static void Main(string[] args)
         {
             var websocket = new JsonWebSocket("ws://127.0.0.1:2011/");
 
-            websocket.On<ClientInfo>("ECHOX", HandleEchoResponse);
+            websocket.On<string>("NEW", HandleNewCommingResponse);
             websocket.Closed += new EventHandler(websocket_Closed);
             websocket.Error += new EventHandler<SuperSocket.ClientEngine.ErrorEventArgs>(websocket_Error);
             websocket.Opened += new EventHandler(websocket_Opened);
             websocket.Open();
+
+            m_SendingWebSocket = websocket;
+
+            m_ReceivingWebSocket = new JsonWebSocket("ws://127.0.0.1:2011/");
+            m_ReceivingWebSocket.On<ClientInfo>("ECHOY", HandleEchoResponse);
+            m_ReceivingWebSocket.Opened += new EventHandler(m_ReceivingWebSocket_Opened);
+            m_ReceivingWebSocket.Closed += new EventHandler(m_ReceivingWebSocket_Closed);
+            m_ReceivingWebSocket.Open();
 
             m_PrintTimer = new Timer(OnPrintTimerCallback, null, 1000 * m_TimerSpan, 1000 * m_TimerSpan);
 
@@ -42,18 +54,30 @@ namespace SuperWebSocket.PerformanceTest.TestSingleClient
                 continue;
 
             m_Stopped = true;
+            m_MessageEvent.Set();
             m_PrintTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
-            m_ClosedEvent.WaitOne();
+
+            m_SendingWebSocket.Close();
+            m_ReceivingWebSocket.Close();
 
             Console.WriteLine("Quit");
             Console.ReadLine();
         }
 
+        static void m_ReceivingWebSocket_Closed(object sender, EventArgs e)
+        {
+            Console.WriteLine("Receiving websocket closed");
+        }
+
+        static void m_ReceivingWebSocket_Opened(object sender, EventArgs e)
+        {
+            Console.WriteLine("Receiving websocket connected");
+        }
+
         static void websocket_Opened(object sender, EventArgs e)
         {
-            Console.WriteLine("Connected");
-            RunTest((JsonWebSocket)sender);
+            Console.WriteLine("Sending websocket connected");
         }
 
         static void websocket_Error(object sender, SuperSocket.ClientEngine.ErrorEventArgs e)
@@ -73,33 +97,37 @@ namespace SuperWebSocket.PerformanceTest.TestSingleClient
 
         static void websocket_Closed(object sender, EventArgs e)
         {
-            m_ClosedEvent.Set();
+            Console.WriteLine("Sending websocket closed");
+        }
+
+        private static void HandleNewCommingResponse(JsonWebSocket websocket, string content)
+        {
+            while (!m_Stopped)
+            {
+                RunTest(websocket, content);
+                m_MessageEvent.WaitOne();
+            }
         }
 
         private static void HandleEchoResponse(JsonWebSocket websocket, ClientInfo content)
         {
             Interlocked.Increment(ref m_Received);
-
-            if (m_Stopped)
-            {
-                websocket.Close();
-                return;
-            }
-
-            RunTest(websocket);
+            m_MessageEvent.Set();
         }
 
         private static Random m_Random = new Random();
 
-        private static void RunTest(JsonWebSocket websocket)
+        private static void RunTest(JsonWebSocket websocket, string targetID)
         {
-            websocket.Send("ECHOX", new ClientInfo
-                {
-                    ID = m_Random.Next(1, 1000),
-                    Height = m_Random.Next(1, 1000),
-                    LocationX = m_Random.Next(1, 1000),
-                    LocationY = m_Random.Next(1, 1000)
-                });
+            websocket.Send("ECHOY", new ClientInfo
+            {
+                ID = m_Random.Next(1, 1000),
+                Height = m_Random.Next(1, 1000),
+                Width = m_Random.Next(1, 1000),
+                LocationX = m_Random.Next(1, 1000),
+                LocationY = m_Random.Next(1, 1000),
+                TargetID = targetID
+            });
 
             Interlocked.Increment(ref m_Sent);
         }
