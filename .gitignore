@@ -1,0 +1,6 @@
+*.userprefs
+**/bin
+mainline/SuperWebSocketTest
+mainline/test-results
+*.user
+mainline/WebSocketTutorial/Client.Web/Logs
