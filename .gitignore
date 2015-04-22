@@ -9,3 +9,4 @@ UpgradeLog.XML
 UpgradeLog.htm
 *.log
 *.user
+mainline/WebSocketTutorial/Client.Web/Logs
